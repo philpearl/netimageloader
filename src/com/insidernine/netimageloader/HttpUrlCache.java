@@ -4,6 +4,11 @@ public class HttpUrlCache
 {
   public static String UrlToCacheFileName(String url)
   {
-    return url.replace("/", "__");
+    String filename = url.replaceAll("[:/\\?&]", "__");
+    if (filename.length() > 255)
+    {
+      filename = filename.substring(0, 254);
+    }
+    return filename;
   }
 }
