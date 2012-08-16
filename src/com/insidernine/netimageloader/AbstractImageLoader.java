@@ -23,15 +23,15 @@ public abstract class AbstractImageLoader<T>
   protected final Context mContext;
   private final ImageLoadHandler mImageLoadHandler;
 
-  public AbstractImageLoader(Context context, Handler uiHandler)
+  public AbstractImageLoader(Context context, Handler uiHandler, Drawable unknownPicture)
   {
-    this(context, new HandlerThread(TAG), uiHandler);
+    this(context, new HandlerThread(TAG), uiHandler, unknownPicture);
   }
 
-  public AbstractImageLoader(Context context, HandlerThread handlerThread, Handler uiHandler)
+  public AbstractImageLoader(Context context, HandlerThread handlerThread, Handler uiHandler, Drawable unknownPicture)
   {
     mUiHandler = uiHandler;
-    mUnknownPicture = context.getResources().getDrawable(android.R.drawable.ic_dialog_alert);
+    mUnknownPicture = unknownPicture;
     mContext = context;
 
     mImageCache.setUnknownPicture(mUnknownPicture);
@@ -174,9 +174,11 @@ public abstract class AbstractImageLoader<T>
         }
         catch (Exception e)
         {
+          Log.e(TAG, "Exception obtaining image for " +id, e);
         }
         if (image == null)
         {
+          Log.i(TAG, "no image, using unknown");
           image = mUnknownPicture;
         }
 
@@ -190,13 +192,16 @@ public abstract class AbstractImageLoader<T>
       {
         mUiHandler.post(new Runnable()
         {
+          @Override
           public void run()
           {
             // ImageView has almost certainly been re-used
             @SuppressWarnings("unchecked")
             final T currentId = (T) imageView.getTag();
-            if (currentId == id)
+            Log.d(TAG, "Have image to set " + currentId + " compares to " + id);
+            if (currentId.equals(id))
             {
+              Log.d(TAG, "Same!");
               imageView.setImageDrawable(imageResult);
             }
           }

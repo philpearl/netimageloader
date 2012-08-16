@@ -13,15 +13,26 @@ public class NetImageLoader extends AbstractImageLoader<String>
   private final HttpLayer mHttpLayer;
 
   public NetImageLoader(Context context,
-      Handler uiHandler)
+      Handler uiHandler, Drawable unknownPicture)
   {
-    this(context, new HandlerThread(TAG), uiHandler);
+    this(context, new HandlerThread(TAG), uiHandler, unknownPicture);
   }
 
+  /**
+   * Create a NetImageLoader
+   * @param context
+   * @param handlerThread Handler thread for background operations
+   * @param uiHandler Handler for the UI thread
+   * <p>
+   * The NetImageLoader will load images on a background thread then install the
+   * image in the UI on the UI thread. See {@link AbstractImageLoader#getImage(Object, android.widget.ImageView)},
+   * where you should use a URL string for the id field
+   *
+   */
   public NetImageLoader(Context context, HandlerThread handlerThread,
-      Handler uiHandler)
+      Handler uiHandler, Drawable unknownPicture)
   {
-    super(context, handlerThread, uiHandler);
+    super(context, handlerThread, uiHandler, unknownPicture);
     mHttpLayer = new HttpLayer(context, "NetImageLoader");
   }
 
