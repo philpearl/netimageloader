@@ -23,6 +23,16 @@ public abstract class AbstractImageLoader<T>
   protected final Context mContext;
   private final ImageLoadHandler mImageLoadHandler;
 
+  /**
+   * The imageView must have a tag that follows this interface.
+   * @param <T> type of the Image ID
+   */
+  public interface ImageTag<T>
+  {
+    public T getImageId();
+    public void onNoPictureFound();
+  }
+
   public AbstractImageLoader(Context context, Handler uiHandler, Drawable unknownPicture)
   {
     this(context, new HandlerThread(TAG), uiHandler, unknownPicture);
@@ -55,15 +65,15 @@ public abstract class AbstractImageLoader<T>
    * Return an image for this contact.  If the image is not cached then return
    * a temporary image and fill in the correct image in the imageView later on
    * the UI thread
-   * @param id
-   * @param imageView
-   * @return an image to use now
+   * @param imageView with tag set up as an ImageTag
+   * @return an image to use now, or null if we're not sure.
    */
-  public Drawable getImage(T id, ImageView imageView)
+  public Drawable getImage(ImageView imageView)
   {
     // We must keep the imageView up-to-date with the right ID in its tag
-    imageView.setTag(id);
-    Drawable image = mImageCache.get(id);
+    @SuppressWarnings("unchecked")
+    ImageTag<T> imageTag = (ImageTag<T>)imageView.getTag();
+    Drawable image = mImageCache.get(imageTag.getImageId());
     if (image != null)
     {
       return image;
@@ -72,8 +82,9 @@ public abstract class AbstractImageLoader<T>
     // Not cached, request the real image
     mImageLoadHandler.requestImage(imageView);
 
-    // return unknown for now
-    return mUnknownPicture;
+    // return null for now.  We only use the unknown picture when we're sure the
+    // image is unknown.  This saves flickering
+    return null;
   }
 
   public Drawable getUnknownPicture()
@@ -157,7 +168,8 @@ public abstract class AbstractImageLoader<T>
       }
 
       @SuppressWarnings("unchecked")
-      final T id = (T) imageView.getTag();
+      ImageTag<T> tag = (ImageTag<T>) imageView.getTag();
+      final T id = tag.getImageId();
       // Image may have been cached in the meantime since we're on a handler
       // thread.
       Drawable image = mImageCache.get(id);
@@ -197,12 +209,17 @@ public abstract class AbstractImageLoader<T>
           {
             // ImageView has almost certainly been re-used
             @SuppressWarnings("unchecked")
-            final T currentId = (T) imageView.getTag();
-            Log.d(TAG, "Have image to set " + currentId + " compares to " + id);
-            if (currentId.equals(id))
+            final ImageTag<T> actualTag = (ImageTag<T>)imageView.getTag();
+            Log.d(TAG, "Have image to set " + actualTag.getImageId() + " compares to " + id);
+            if (actualTag.getImageId().equals(id))
             {
               Log.d(TAG, "Same!");
               imageView.setImageDrawable(imageResult);
+
+              if (imageResult == mUnknownPicture)
+              {
+                actualTag.onNoPictureFound();
+              }
             }
           }
         });
